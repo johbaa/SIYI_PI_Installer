@@ -1,0 +1,12 @@
+{
+  "stable": "2.4.15",
+  "versions": [
+    {
+      "version": "2.4.15",
+      "name": "SIYI RPi Installer 2.4.15",
+      "url": "https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main/SIYI_RPI_INSTALLER_RELEASE_2.4.15.tar.gz",
+      "sha256_url": "https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main/SIYI_RPI_INSTALLER_RELEASE_2.4.15.sha256",
+      "channel": "stable"
+    }
+  ]
+}
