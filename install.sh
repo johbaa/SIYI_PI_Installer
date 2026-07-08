@@ -1,12 +1,26 @@
 #!/usr/bin/env bash
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
+VERSION="2.5.0"
+ARCHIVE="SIYI_RPI_INSTALLER_RELEASE_${VERSION}.tar.gz"
+DIR="SIYI_RPI_INSTALLER_RELEASE_${VERSION}"
 
-tar -xzf SIYI_RPI_INSTALLER_RELEASE_2.5.0.tar.gz
+cd /home/pi
 
-cd SIYI_RPI_INSTALLER_RELEASE_2.5.0
+echo
+echo "Downloading ${ARCHIVE}..."
+echo
+
+curl -fsSL \
+    -o "${ARCHIVE}" \
+    "https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main/${ARCHIVE}"
+
+rm -rf "${DIR}"
+
+tar -xzf "${ARCHIVE}"
+
+cd "${DIR}"
 
 chmod +x install.sh
+
 exec ./install.sh
