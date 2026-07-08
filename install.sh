@@ -12,8 +12,8 @@ echo "Downloading ${ARCHIVE}..."
 echo
 
 curl -fsSL \
-    -o "${ARCHIVE}" \
-    "https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main/${ARCHIVE}"
+  -o "${ARCHIVE}" \
+  "https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main/${ARCHIVE}"
 
 rm -rf "${DIR}"
 
@@ -23,4 +23,11 @@ cd "${DIR}"
 
 chmod +x install.sh
 
-exec ./install.sh
+./install.sh
+
+if [ -f /tmp/siyi_webui_update.log ]; then
+cat > /tmp/siyi_webui_update.log <<EOF
+Upgrade complete, current version ${VERSION}
+EOF
+sync
+fi
