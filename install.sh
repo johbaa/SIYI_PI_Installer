@@ -23,7 +23,10 @@ cd "${DIR}"
 
 chmod +x install.sh
 
+set +e
 ./install.sh
+RC=$?
+set -e
 
 if [ -f /tmp/siyi_webui_update.log ]; then
 cat <<EOF | tee -a /tmp/siyi_webui_update.log >/dev/null
@@ -41,3 +44,5 @@ Status: SUCCESS
 EOF
 sync
 fi
+
+exit $RC
