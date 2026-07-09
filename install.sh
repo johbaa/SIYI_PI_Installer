@@ -28,23 +28,4 @@ set +e
 RC=$?
 set -e
 
-echo "DEBUG: wrapper reached end (RC=$RC)" | tee -a /tmp/siyi_webui_update.log >/dev/null
-
-if [ -f /tmp/siyi_webui_update.log ]; then
-cat <<EOF | tee -a /tmp/siyi_webui_update.log >/dev/null
-
-==================================================
-
-Upgrade complete
-
-Current version: ${VERSION}
-
-Status: SUCCESS
-
-==================================================
-
-EOF
-sync
-fi
-
 exit $RC
