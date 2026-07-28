@@ -1,60 +1,41 @@
 #!/usr/bin/env bash
-set -Eeuo pipefail
+set -euo pipefail
 export LANG=C.UTF-8
 export LC_ALL=C.UTF-8
 export LC_CTYPE=C.UTF-8
 
-RAW="https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main"
+RAW_BASE="https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main"
+MANIFEST_URL="$RAW_BASE/manifest.json"
+WORK_DIR="/home/pi/siyi-github-install"
 
-for cmd in curl python3 sha256sum tar; do
-  command -v "$cmd" >/dev/null 2>&1 || {
-    echo "Required command is missing: $cmd" >&2
-    exit 1
-  }
-done
-
-WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/siyi-rpi-installer.XXXXXX")"
-cleanup() {
-  rm -rf "$WORK_DIR"
-}
-trap cleanup EXIT INT TERM
+mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
-curl -fsSL "$RAW/manifest.json" -o manifest.json
-VERSION="$(python3 - <<'PY'
-import json
-with open('manifest.json', encoding='utf-8') as handle:
-    value = str(json.load(handle)['stable']).strip()
-if not value or any(ch not in '0123456789.' for ch in value):
-    raise SystemExit('Invalid stable release value in manifest.json')
+curl -fsSL --connect-timeout 10 --max-time 30 -o manifest.json "$MANIFEST_URL"
+VERSION="$(python3 - <<'PYVERSION'
+import json,re
+with open('manifest.json',encoding='utf-8') as f:
+    value=str(json.load(f).get('stable','')).strip()
+if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+',value):
+    raise SystemExit('manifest stable version is missing or invalid')
 print(value)
-PY
+PYVERSION
 )"
-
 ARCHIVE="SIYI_RPI_INSTALLER_RELEASE_${VERSION}.tar.gz"
 CHECKSUM="SIYI_RPI_INSTALLER_RELEASE_${VERSION}.sha256"
 RELEASE_DIR="SIYI_RPI_INSTALLER_RELEASE_${VERSION}"
 
-curl -fsSL "$RAW/$ARCHIVE" -o "$ARCHIVE"
-curl -fsSL "$RAW/$CHECKSUM" -o "$CHECKSUM"
-sha256sum -c "$CHECKSUM"
+echo "Downloading SIYI release ${VERSION}..."
+curl -fsSL --connect-timeout 10 --max-time 900 -o "$ARCHIVE" "$RAW_BASE/$ARCHIVE"
+curl -fsSL --connect-timeout 10 --max-time 30 -o "$CHECKSUM" "$RAW_BASE/$CHECKSUM"
+EXPECTED="$(awk 'NR==1{print $1}' "$CHECKSUM")"
+ACTUAL="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
+[[ "$EXPECTED" =~ ^[0-9a-fA-F]{64}$ ]] || { echo "Invalid published SHA256 file" >&2; exit 1; }
+[ "${EXPECTED,,}" = "${ACTUAL,,}" ] || { echo "SHA256 verification failed" >&2; exit 1; }
+echo "SHA256 verified."
 
+rm -rf "$RELEASE_DIR"
 tar -xzf "$ARCHIVE"
-INNER_INSTALLER="$WORK_DIR/$RELEASE_DIR/install.sh"
-[ -f "$INNER_INSTALLER" ] || {
-  echo "Release archive is missing $RELEASE_DIR/install.sh" >&2
-  exit 1
-}
-chmod +x "$INNER_INSTALLER"
-
-if [ "$(id -u)" -eq 0 ]; then
-  bash "$INNER_INSTALLER" "$@"
-else
-  command -v sudo >/dev/null 2>&1 || {
-    echo "sudo is required to install SIYI ${VERSION}." >&2
-    exit 1
-  }
-  echo "Administrator access is required to install SIYI ${VERSION}."
-  sudo -v
-  sudo -- bash "$INNER_INSTALLER" "$@"
-fi
+[ -f "$RELEASE_DIR/install.sh" ] || { echo "Release archive is missing $RELEASE_DIR/install.sh" >&2; exit 1; }
+chmod +x "$RELEASE_DIR/install.sh"
+exec "$RELEASE_DIR/install.sh" "$@"
