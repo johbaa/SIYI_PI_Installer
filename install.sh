@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+export LC_CTYPE=C.UTF-8
 
 RAW="https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main"
 
