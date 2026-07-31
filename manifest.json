@@ -1,1 +1,5 @@
-{ "stable": "4.2.0" }
+{
+  "stable": "4.2.1",
+  "build_id": "SIYI_4_2_1_RELEASE_CANDIDATE_V21",
+  "publish_only_after_acceptance": true
+}
