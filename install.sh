@@ -5,10 +5,8 @@ export LC_ALL=C.UTF-8
 export LC_CTYPE=C.UTF-8
 RAW_BASE="https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main"
 MANIFEST_URL="$RAW_BASE/manifest.json"
-umask 077
-WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/siyi-github-install.XXXXXX")"
-cleanup_bootstrap(){ rm -rf "$WORK_DIR"; }
-trap cleanup_bootstrap EXIT
+WORK_DIR="/home/pi/siyi-github-install"
+mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 curl -fL --connect-timeout 10 --max-time 30 -o manifest.json "$MANIFEST_URL"
 VERSION="$(python3 - <<'PYVERSION'
