@@ -1,10 +1,4 @@
 {
-  "archive": "FLIGHTCORE_RPI_INSTALLER_RELEASE_4.2.3.tar.gz",
-  "build_id": "FLIGHTCORE_4_2_3_RELEASE_CANDIDATE_V8",
-  "channel": "release-candidate",
-  "checksum": "FLIGHTCORE_RPI_INSTALLER_RELEASE_4.2.3.sha256",
-  "factory": "V50",
-  "product": "FlightCore",
-  "release_candidate": 8,
+  "build_id": "SIYI_4_2_3_RELEASE_CANDIDATE_V6",
   "stable": "4.2.3"
 }
