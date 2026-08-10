@@ -3,7 +3,7 @@
   "build_id": "FLIGHTCORE_4_2_3_RELEASE_CANDIDATE_V11",
   "channel": "release-candidate",
   "checksum": "FLIGHTCORE_RPI_INSTALLER_RELEASE_4.2.3.sha256",
-  "factory": "V54",
+  "factory": "V55",
   "product": "FlightCore",
   "release_candidate": 11,
   "stable": "4.2.3"
