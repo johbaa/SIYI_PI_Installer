@@ -8,7 +8,7 @@ cd "$TMP"
 HEAD_SHA="$(python3 - "$API_REF" <<'PYHEAD'
 import json,re,sys,time,urllib.request
 url=sys.argv[1] + ('&' if '?' in sys.argv[1] else '?') + 'cache_bust=' + str(time.time_ns())
-req=urllib.request.Request(url,headers={'User-Agent':'FlightCore-Installer/4.3.0-RC1','Accept':'application/vnd.github+json','Cache-Control':'no-cache, no-store, max-age=0','Pragma':'no-cache'})
+req=urllib.request.Request(url,headers={'User-Agent':'FlightCore-Installer/4.3.0-RC2','Accept':'application/vnd.github+json','Cache-Control':'no-cache, no-store, max-age=0','Pragma':'no-cache'})
 with urllib.request.urlopen(req,timeout=12) as r: data=json.loads(r.read(65536).decode('utf-8'))
 sha=str((data.get('object') or {}).get('sha','')).strip()
 if not re.fullmatch(r'[0-9a-fA-F]{40}',sha): raise SystemExit('invalid GitHub main commit SHA')
