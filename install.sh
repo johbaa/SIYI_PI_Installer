@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-# FLIGHTCORE_4_3_0_RC4_PUBLIC_INSTALLER_DUAL_MODE_V1
-# FLIGHTCORE_4_3_0_RC4_PUBLIC_MAC_PROGRESS_WEBUI_LAUNCHER_V1
+# FLIGHTCORE_4_3_0_RC5_PUBLIC_INSTALLER_DUAL_MODE_V2
+# FLIGHTCORE_4_3_0_RC5_PUBLIC_MAC_PROGRESS_WEBUI_LAUNCHER_V2
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
 
 REPO="johbaa/SIYI_PI_Installer"
@@ -28,10 +28,10 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   # Public fresh-install launcher for macOS. Browser is the primary progress UI.
   cd "$HOME/Downloads"
   TS="$(date '+%Y%m%d_%H%M%S')"
-  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC4_FRESH_INSTALL_${TS}.txt"
+  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC5_FRESH_INSTALL_${TS}.txt"
   exec > >(tee "$LOG") 2>&1
 
-  echo "FlightCore 4.3.0 RC4 - fresh installation launcher"
+  echo "FlightCore 4.3.0 RC5 - fresh installation launcher"
   echo "Progress is shown in the browser on port 8090."
   echo
 
@@ -195,4 +195,39 @@ sha256sum -c "$CHECKSUM"
 ROOT="$(tar -tzf "$ARCHIVE" | awk -F/ 'NF{print $1;exit}')"
 [[ "$ROOT" =~ ^[A-Za-z0-9._-]+$ ]] || { echo 'Unsafe archive root' >&2; exit 1; }
 tar -xzf "$ARCHIVE"
+
+# FLIGHTCORE_4_3_0_RC5_PUBLIC_FRESH_PROGRESS_PRESTART_V1
+# Start the browser-facing progress service before the inner installer does any
+# route/dependency work. The state directory is user-writable so this works
+# before root escalation and survives the inner installer's runtime staging.
+if [[ ! -e /etc/siyi/release_version && ! -e /home/pi/siyi-webui/server.py && -x "$TMP/$ROOT/fresh-install-webui.py" ]]; then
+  FRESH_UI_DIR="/tmp/flightcore-installer-ui"
+  FRESH_UI_STATE="$FRESH_UI_DIR/state.json"
+  FRESH_UI_LOG="$FRESH_UI_DIR/server.log"
+  mkdir -p "$FRESH_UI_DIR"
+  python3 - "$FRESH_UI_STATE" <<'PYFC5STATE'
+import datetime,json,os,sys,tempfile
+p=sys.argv[1]; os.makedirs(os.path.dirname(p),exist_ok=True)
+state={'status':'starting','progress':1,'stage':'Preparing installer','error':'','log_path':'','updated_at':datetime.datetime.now().astimezone().isoformat(timespec='seconds')}
+fd,tmp=tempfile.mkstemp(prefix='.state.',dir=os.path.dirname(p))
+with os.fdopen(fd,'w',encoding='utf-8') as f: json.dump(state,f,indent=2); f.write('\n'); f.flush(); os.fsync(f.fileno())
+os.chmod(tmp,0o644); os.replace(tmp,p)
+PYFC5STATE
+  nohup python3 "$TMP/$ROOT/fresh-install-webui.py" --port 8090 --state "$FRESH_UI_STATE" >"$FRESH_UI_LOG" 2>&1 </dev/null &
+  FRESH_UI_PID=$!
+  FRESH_UI_OK=0
+  for _fc_try in $(seq 1 50); do
+    if curl -fsS --max-time 1 http://127.0.0.1:8090/state >/dev/null 2>&1; then FRESH_UI_OK=1; break; fi
+    kill -0 "$FRESH_UI_PID" >/dev/null 2>&1 || break
+    sleep 0.2
+  done
+  if [[ "$FRESH_UI_OK" -ne 1 ]]; then
+    echo "ERROR: FlightCore Progress WebUI failed to start on port 8090." >&2
+    cat "$FRESH_UI_LOG" >&2 2>/dev/null || true
+    exit 1
+  fi
+  echo "Progress WebUI prestarted and verified on port 8090."
+  export SIYI_FRESH_INSTALL_UI_PRESTARTED=1 SIYI_FRESH_INSTALL_UI_STATE="$FRESH_UI_STATE"
+fi
+
 exec bash "$TMP/$ROOT/install.sh" "$@"
