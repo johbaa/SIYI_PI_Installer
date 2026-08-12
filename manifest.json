@@ -1,10 +1,10 @@
 {
   "archive": "FLIGHTCORE_RPI_INSTALLER_RELEASE_4.3.0.tar.gz",
-  "build_id": "FLIGHTCORE_4_3_0_RELEASE_CANDIDATE_V3",
+  "build_id": "FLIGHTCORE_4_3_0_RELEASE_CANDIDATE_V4",
   "channel": "release-candidate",
   "checksum": "FLIGHTCORE_RPI_INSTALLER_RELEASE_4.3.0.sha256",
-  "factory": "V61",
+  "factory": "V63",
   "product": "FlightCore",
-  "release_candidate": 3,
+  "release_candidate": 4,
   "stable": "4.3.0"
 }

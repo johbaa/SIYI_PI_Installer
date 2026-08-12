@@ -1,21 +1,183 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# FLIGHTCORE_4_3_0_RC4_PUBLIC_INSTALLER_DUAL_MODE_V1
+# FLIGHTCORE_4_3_0_RC4_PUBLIC_MAC_PROGRESS_WEBUI_LAUNCHER_V1
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
-API_REF="https://api.github.com/repos/johbaa/SIYI_PI_Installer/git/ref/heads/main"
+
+REPO="johbaa/SIYI_PI_Installer"
+API_REF="https://api.github.com/repos/${REPO}/git/ref/heads/main"
+RAW_REPO="https://raw.githubusercontent.com/${REPO}"
+
+resolve_head_sha() {
+  if [[ "${FLIGHTCORE_PINNED_HEAD:-}" =~ ^[0-9a-fA-F]{40}$ ]]; then
+    printf '%s\n' "$FLIGHTCORE_PINNED_HEAD"
+    return 0
+  fi
+  local json sha
+  json="$(curl -fsSL --max-time 15 \
+    -H 'Accept: application/vnd.github+json' \
+    -H 'Cache-Control: no-cache, no-store, max-age=0' \
+    -H 'Pragma: no-cache' \
+    "${API_REF}?cache_bust=$(date +%s)-$$")"
+  sha="$(printf '%s\n' "$json" | sed -nE 's/.*"sha"[[:space:]]*:[[:space:]]*"([0-9a-fA-F]{40})".*/\1/p' | head -n1)"
+  [[ "$sha" =~ ^[0-9a-fA-F]{40}$ ]] || { echo 'Unable to resolve immutable GitHub main commit SHA.' >&2; return 1; }
+  printf '%s\n' "$sha"
+}
+
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  # Public fresh-install launcher for macOS. Browser is the primary progress UI.
+  cd "$HOME/Downloads"
+  TS="$(date '+%Y%m%d_%H%M%S')"
+  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC4_FRESH_INSTALL_${TS}.txt"
+  exec > >(tee "$LOG") 2>&1
+
+  echo "FlightCore 4.3.0 RC4 - fresh installation launcher"
+  echo "Progress is shown in the browser on port 8090."
+  echo
+
+  PI_USER="${PI_USER:-pi}"
+  LAST_IP_FILE="$HOME/Downloads/.flightcore_last_pi_ip"
+  SUGGESTED_IP=""
+  if [[ -n "${PI_IP:-}" ]]; then
+    SUGGESTED_IP="$PI_IP"
+  elif [[ -s "$LAST_IP_FILE" ]]; then
+    SUGGESTED_IP="$(tr -d '[:space:]' < "$LAST_IP_FILE")"
+  fi
+
+  echo "FlightCore target selection"
+  if [[ -n "$SUGGESTED_IP" ]]; then printf 'Pi IP [%s]: ' "$SUGGESTED_IP"; else printf 'Pi IP: '; fi
+  read -r CONFIRMED_IP
+  PI_IP="${CONFIRMED_IP:-$SUGGESTED_IP}"
+  [[ -n "$PI_IP" ]] || { echo 'ERROR: No Pi IP supplied.' >&2; exit 2; }
+  printf '%s\n' "$PI_IP" > "$LAST_IP_FILE"
+  echo "Confirmed target: ${PI_USER}@${PI_IP}"
+
+  ASKPASS="$(mktemp "${TMPDIR:-/tmp}/fcaskpass.XXXXXX")"
+  cleanup_mac(){ rm -f "$ASKPASS"; }
+  trap cleanup_mac EXIT
+  printf '#!/bin/sh\nprintf "%%s\\n" raspberry\n' > "$ASKPASS"
+  chmod 700 "$ASKPASS"
+  export SSH_ASKPASS="$ASKPASS"
+  export SSH_ASKPASS_REQUIRE=force
+  export DISPLAY="${DISPLAY:-:0}"
+  SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2)
+
+  echo
+  echo "Waiting for SSH at ${PI_USER}@${PI_IP} ..."
+  while true; do
+    if ssh -T "${SSH_OPTS[@]}" "$PI_USER@$PI_IP" true </dev/null >/dev/null 2>&1; then
+      echo "SSH available."
+      break
+    fi
+    echo "Waiting for SSH... $(date '+%H:%M:%S')"
+    sleep 5
+  done
+
+  # This public path is the end-user fresh-install path. Existing FlightCore
+  # systems upgrade through System -> Software update instead.
+  if ssh -T "${SSH_OPTS[@]}" "$PI_USER@$PI_IP" 'test -e /etc/siyi/release_version -o -e /home/pi/siyi-webui/server.py' </dev/null >/dev/null 2>&1; then
+    echo "ERROR: FlightCore is already installed on this target." >&2
+    echo "Use System -> Software update for an existing FlightCore installation." >&2
+    exit 3
+  fi
+
+  echo "Resolving current GitHub release commit..."
+  HEAD_SHA="$(resolve_head_sha)"
+  [[ "$HEAD_SHA" =~ ^[0-9a-fA-F]{40}$ ]] || { echo 'ERROR: invalid GitHub commit SHA.' >&2; exit 1; }
+  echo "Pinned GitHub commit: $HEAD_SHA"
+  RAW_BASE="${RAW_REPO}/${HEAD_SHA}"
+
+  REMOTE_CMD="set -Eeuo pipefail; curl -fsSL -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' '${RAW_BASE}/install.sh' | FLIGHTCORE_PINNED_HEAD='${HEAD_SHA}' bash"
+  echo "Starting commit-pinned FlightCore installer on Pi..."
+  set +e
+  ssh -T "${SSH_OPTS[@]}" "$PI_USER@$PI_IP" "$REMOTE_CMD" </dev/null &
+  SSH_PID=$!
+  set -e
+
+  PROGRESS_URL="http://${PI_IP}:8090"
+  PROGRESS_STATE="${PROGRESS_URL}/state"
+  FIRST_SETUP_URL="http://${PI_IP}:8080/first_setup"
+  PROGRESS_OPENED=0
+  PROGRESS_SEEN=0
+  PROGRESS_COMPLETE=0
+  INSTALL_FAILED=0
+
+  echo "Waiting for live Progress WebUI at $PROGRESS_URL ..."
+  start_epoch="$(date +%s)"
+  while true; do
+    if curl -fsS --max-time 2 "${PROGRESS_STATE}?ts=$(date +%s)" >/tmp/flightcore-progress-state.$$ 2>/dev/null; then
+      PROGRESS_SEEN=1
+      if [[ "$PROGRESS_OPENED" -eq 0 ]]; then
+        echo "Progress WebUI available - opening browser."
+        open "$PROGRESS_URL" >/dev/null 2>&1 || true
+        PROGRESS_OPENED=1
+      fi
+      status="$(sed -nE 's/.*"status"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' /tmp/flightcore-progress-state.$$ | head -n1 || true)"
+      if [[ "$status" == "complete" || "$status" == "restarting" ]]; then PROGRESS_COMPLETE=1; fi
+      if [[ "$status" == "failed" ]]; then INSTALL_FAILED=1; break; fi
+    fi
+    rm -f /tmp/flightcore-progress-state.$$ >/dev/null 2>&1 || true
+
+    if curl -fsS --max-time 2 "$FIRST_SETUP_URL" >/dev/null 2>&1; then
+      echo "First Setup is available."
+      [[ "$PROGRESS_OPENED" -eq 1 ]] || open "$FIRST_SETUP_URL" >/dev/null 2>&1 || true
+      wait "$SSH_PID" >/dev/null 2>&1 || true
+      echo
+      echo "FRESH INSTALL LAUNCHER: PASS"
+      echo "First Setup: $FIRST_SETUP_URL"
+      echo "Log: $LOG"
+      exit 0
+    fi
+
+    if ! kill -0 "$SSH_PID" >/dev/null 2>&1; then
+      set +e
+      wait "$SSH_PID"
+      SSH_RC=$?
+      set -e
+      echo "Remote installer SSH session ended (rc=$SSH_RC)."
+      if [[ "$PROGRESS_COMPLETE" -eq 0 && "$PROGRESS_SEEN" -eq 0 && "$SSH_RC" -ne 0 ]]; then
+        echo "ERROR: Remote installer ended before the Progress WebUI appeared." >&2
+        exit "$SSH_RC"
+      fi
+      # A successful installer reboots the Pi, which normally drops SSH.
+      break
+    fi
+
+    now="$(date +%s)"
+    if (( now - start_epoch > 900 )); then
+      echo "ERROR: Timed out waiting for FlightCore installation progress." >&2
+      kill "$SSH_PID" >/dev/null 2>&1 || true
+      exit 1
+    fi
+    sleep 1
+  done
+
+  [[ "$INSTALL_FAILED" -eq 0 ]] || { echo 'ERROR: FlightCore installer reported failure.' >&2; exit 1; }
+  echo "Waiting for Pi reboot and First Setup..."
+  deadline=$(( $(date +%s) + 600 ))
+  while (( $(date +%s) < deadline )); do
+    if curl -fsS --max-time 3 "$FIRST_SETUP_URL" >/dev/null 2>&1; then
+      echo "First Setup available - opening browser."
+      open "$FIRST_SETUP_URL" >/dev/null 2>&1 || true
+      echo
+      echo "FRESH INSTALL LAUNCHER: PASS"
+      echo "First Setup: $FIRST_SETUP_URL"
+      echo "Log: $LOG"
+      exit 0
+    fi
+    sleep 3
+  done
+  echo "ERROR: Installation session ended but First Setup did not become reachable." >&2
+  exit 1
+fi
+
+# Linux/Pi branch: immutable-commit bootstrap used by the macOS launcher and
+# direct Pi execution. It downloads only the manifest-selected FlightCore archive.
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/flightcore-install.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 cd "$TMP"
-HEAD_SHA="$(python3 - "$API_REF" <<'PYHEAD'
-import json,re,sys,time,urllib.request
-url=sys.argv[1] + ('&' if '?' in sys.argv[1] else '?') + 'cache_bust=' + str(time.time_ns())
-req=urllib.request.Request(url,headers={'User-Agent':'FlightCore-Installer/4.3.0-RC3','Accept':'application/vnd.github+json','Cache-Control':'no-cache, no-store, max-age=0','Pragma':'no-cache'})
-with urllib.request.urlopen(req,timeout=12) as r: data=json.loads(r.read(65536).decode('utf-8'))
-sha=str((data.get('object') or {}).get('sha','')).strip()
-if not re.fullmatch(r'[0-9a-fA-F]{40}',sha): raise SystemExit('invalid GitHub main commit SHA')
-print(sha)
-PYHEAD
-)"
-RAW_BASE="https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/${HEAD_SHA}"
+HEAD_SHA="$(resolve_head_sha)"
+RAW_BASE="${RAW_REPO}/${HEAD_SHA}"
 curl -fsSL -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' -o manifest.json "$RAW_BASE/manifest.json"
 read -r VERSION ARCHIVE CHECKSUM < <(python3 - <<'PYMAN'
 import json,re
