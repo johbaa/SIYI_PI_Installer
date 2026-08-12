@@ -1,6 +1,6 @@
 # FlightCore Control Platform
 
-Current release candidate: 4.3.0 RC5 / Factory V64.
+Current release candidate: 4.3.0 RC6 / Factory V66.
 
 Fresh install from macOS:
 ```bash

@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 # FLIGHTCORE_4_3_0_RC5_PUBLIC_INSTALLER_DUAL_MODE_V2
 # FLIGHTCORE_4_3_0_RC5_PUBLIC_MAC_PROGRESS_WEBUI_LAUNCHER_V2
+# FLIGHTCORE_4_3_0_RC5_V65_MAC_AUTO_OPEN_CHECKED_V1
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
 
 REPO="johbaa/SIYI_PI_Installer"
@@ -24,14 +25,28 @@ resolve_head_sha() {
   printf '%s\n' "$sha"
 }
 
+mac_open_url() {
+  local url="$1"
+  if [[ ! -x /usr/bin/open ]]; then
+    echo "ERROR: macOS open command is unavailable; cannot auto-open $url" >&2
+    return 1
+  fi
+  if /usr/bin/open "$url" >/dev/null 2>&1; then
+    echo "Browser auto-open requested: $url"
+    return 0
+  fi
+  echo "ERROR: macOS could not auto-open $url" >&2
+  return 1
+}
+
 if [[ "$(uname -s)" == "Darwin" ]]; then
   # Public fresh-install launcher for macOS. Browser is the primary progress UI.
   cd "$HOME/Downloads"
   TS="$(date '+%Y%m%d_%H%M%S')"
-  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC5_FRESH_INSTALL_${TS}.txt"
+  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC6_FRESH_INSTALL_${TS}.txt"
   exec > >(tee "$LOG") 2>&1
 
-  echo "FlightCore 4.3.0 RC5 - fresh installation launcher"
+  echo "FlightCore 4.3.0 RC6 - fresh installation launcher"
   echo "Progress is shown in the browser on port 8090."
   echo
 
@@ -109,8 +124,11 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
       PROGRESS_SEEN=1
       if [[ "$PROGRESS_OPENED" -eq 0 ]]; then
         echo "Progress WebUI available - opening browser."
-        open "$PROGRESS_URL" >/dev/null 2>&1 || true
-        PROGRESS_OPENED=1
+        if mac_open_url "$PROGRESS_URL"; then
+          PROGRESS_OPENED=1
+        else
+          echo "Browser auto-open request failed; retrying while Progress WebUI remains reachable."
+        fi
       fi
       status="$(sed -nE 's/.*"status"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' /tmp/flightcore-progress-state.$$ | head -n1 || true)"
       if [[ "$status" == "complete" || "$status" == "restarting" ]]; then PROGRESS_COMPLETE=1; fi
@@ -120,7 +138,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 
     if curl -fsS --max-time 2 "$FIRST_SETUP_URL" >/dev/null 2>&1; then
       echo "First Setup is available."
-      [[ "$PROGRESS_OPENED" -eq 1 ]] || open "$FIRST_SETUP_URL" >/dev/null 2>&1 || true
+      [[ "$PROGRESS_OPENED" -eq 1 ]] || mac_open_url "$FIRST_SETUP_URL" || true
       wait "$SSH_PID" >/dev/null 2>&1 || true
       echo
       echo "FRESH INSTALL LAUNCHER: PASS"
@@ -158,7 +176,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   while (( $(date +%s) < deadline )); do
     if curl -fsS --max-time 3 "$FIRST_SETUP_URL" >/dev/null 2>&1; then
       echo "First Setup available - opening browser."
-      open "$FIRST_SETUP_URL" >/dev/null 2>&1 || true
+      mac_open_url "$FIRST_SETUP_URL" || true
       echo
       echo "FRESH INSTALL LAUNCHER: PASS"
       echo "First Setup: $FIRST_SETUP_URL"
