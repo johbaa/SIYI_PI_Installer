@@ -3,6 +3,7 @@ set -Eeuo pipefail
 # FLIGHTCORE_4_3_0_RC5_PUBLIC_INSTALLER_DUAL_MODE_V2
 # FLIGHTCORE_4_3_0_RC5_PUBLIC_MAC_PROGRESS_WEBUI_LAUNCHER_V2
 # FLIGHTCORE_4_3_0_RC5_V65_MAC_AUTO_OPEN_CHECKED_V1
+# FLIGHTCORE_4_3_0_RC6_V69_PUBLIC_ONE_TOUCH_MAC_LAUNCHER_V1
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
 
 REPO="johbaa/SIYI_PI_Installer"
@@ -50,7 +51,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   echo "Progress is shown in the browser on port 8090."
   echo
 
-  PI_USER="${PI_USER:-pi}"
+  DEFAULT_PI_USER="${PI_USER:-pi}"
   LAST_IP_FILE="$HOME/Downloads/.flightcore_last_pi_ip"
   SUGGESTED_IP=""
   if [[ -n "${PI_IP:-}" ]]; then
@@ -64,29 +65,32 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   read -r CONFIRMED_IP
   PI_IP="${CONFIRMED_IP:-$SUGGESTED_IP}"
   [[ -n "$PI_IP" ]] || { echo 'ERROR: No Pi IP supplied.' >&2; exit 2; }
+  printf 'SSH user [%s]: ' "$DEFAULT_PI_USER"
+  read -r CONFIRMED_USER
+  PI_USER="${CONFIRMED_USER:-$DEFAULT_PI_USER}"
+  [[ -n "$PI_USER" ]] || { echo 'ERROR: No SSH user supplied.' >&2; exit 2; }
   printf '%s\n' "$PI_IP" > "$LAST_IP_FILE"
   echo "Confirmed target: ${PI_USER}@${PI_IP}"
 
-  ASKPASS="$(mktemp "${TMPDIR:-/tmp}/fcaskpass.XXXXXX")"
-  cleanup_mac(){ rm -f "$ASKPASS"; }
+  SSH_CONTROL="${TMPDIR:-/tmp}/flightcore-ssh-${BASHPID:-$$}.sock"
+  cleanup_mac(){
+    ssh -S "$SSH_CONTROL" -O exit "$PI_USER@$PI_IP" >/dev/null 2>&1 || true
+    rm -f "$SSH_CONTROL" /tmp/flightcore-progress-state.$$ >/dev/null 2>&1 || true
+  }
   trap cleanup_mac EXIT
-  printf '#!/bin/sh\nprintf "%%s\\n" raspberry\n' > "$ASKPASS"
-  chmod 700 "$ASKPASS"
-  export SSH_ASKPASS="$ASKPASS"
-  export SSH_ASKPASS_REQUIRE=force
-  export DISPLAY="${DISPLAY:-:0}"
-  SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2)
+  SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o ControlPath="$SSH_CONTROL")
 
   echo
   echo "Waiting for SSH at ${PI_USER}@${PI_IP} ..."
-  while true; do
-    if ssh -T "${SSH_OPTS[@]}" "$PI_USER@$PI_IP" true </dev/null >/dev/null 2>&1; then
-      echo "SSH available."
-      break
-    fi
+  NC_BIN="$(command -v nc || true)"
+  [[ -n "$NC_BIN" ]] || { echo 'ERROR: nc is unavailable on this Mac.' >&2; exit 1; }
+  while ! "$NC_BIN" -z -w 2 "$PI_IP" 22 >/dev/null 2>&1; do
     echo "Waiting for SSH... $(date '+%H:%M:%S')"
-    sleep 5
+    sleep 2
   done
+  echo "SSH is available. Authenticate to the Pi when prompted."
+  ssh -MNf "${SSH_OPTS[@]}" -o ControlMaster=yes -o ControlPersist=600 "$PI_USER@$PI_IP" || { echo 'ERROR: SSH authentication failed.' >&2; exit 1; }
+  echo "SSH authentication established."
 
   # This public path is the end-user fresh-install path. Existing FlightCore
   # systems upgrade through System -> Software update instead.
