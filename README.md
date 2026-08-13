@@ -1,10 +1,10 @@
 # FlightCore Control Platform
 
-Current release candidate: 4.3.0 RC6 / Factory V70.
+Current release candidate: 4.3.0 RC6 / Factory V71.
 
 ## Fresh install from macOS - one touch
 Copy this single line into Terminal and press Enter:
 ```bash
 tmp="$(mktemp "${TMPDIR:-/tmp}/flightcore-install.XXXXXX")"; curl -fsSL https://raw.githubusercontent.com/johbaa/SIYI_PI_Installer/main/install.sh -o "$tmp" && /bin/bash "$tmp"; rc=$?; rm -f "$tmp"; (exit "$rc")
 ```
-The launcher asks for the Pi IP and SSH user, automatically clears any stale saved SSH host key for the selected IP, authenticates normally over SSH, pins the current immutable GitHub main commit, starts/verifies the live port-8090 Progress WebUI, opens it automatically, and shows the same live progress/activity plus elapsed time. Existing FlightCore systems upgrade through System -> Software update.
+The launcher handles target selection, stale SSH host keys, normal SSH authentication, immutable publication pinning, live port-8090 progress and First Setup opening. Existing FlightCore systems upgrade through System -> Software Update. Factory V71 also supports both exact published RC5/V64 and RC5/V65 variants for the shared registered RC5 build identity.
