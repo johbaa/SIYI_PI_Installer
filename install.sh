@@ -4,6 +4,7 @@ set -Eeuo pipefail
 # FLIGHTCORE_4_3_0_RC5_PUBLIC_MAC_PROGRESS_WEBUI_LAUNCHER_V2
 # FLIGHTCORE_4_3_0_RC5_V65_MAC_AUTO_OPEN_CHECKED_V1
 # FLIGHTCORE_4_3_0_RC6_V69_PUBLIC_ONE_TOUCH_MAC_LAUNCHER_V1
+# FLIGHTCORE_4_3_0_RC6_V70_PUBLIC_ONE_TOUCH_STALE_HOSTKEY_RECOVERY_V1
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
 
 REPO="johbaa/SIYI_PI_Installer"
@@ -71,6 +72,14 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   [[ -n "$PI_USER" ]] || { echo 'ERROR: No SSH user supplied.' >&2; exit 2; }
   printf '%s\n' "$PI_IP" > "$LAST_IP_FILE"
   echo "Confirmed target: ${PI_USER}@${PI_IP}"
+
+  # Freshly reimaged Pis normally generate a new SSH host key while often
+  # reusing the same IP. The public one-touch fresh-install path owns this
+  # recovery so the user never needs a separate ssh-keygen command.
+  SSH_KEYGEN_BIN="$(command -v ssh-keygen || true)"
+  [[ -n "$SSH_KEYGEN_BIN" ]] || { echo 'ERROR: ssh-keygen is unavailable on this Mac.' >&2; exit 1; }
+  "$SSH_KEYGEN_BIN" -R "$PI_IP" >/dev/null 2>&1 || true
+  echo "Cleared stale SSH host-key cache for $PI_IP (if present)."
 
   SSH_CONTROL="${TMPDIR:-/tmp}/flightcore-ssh-${BASHPID:-$$}.sock"
   cleanup_mac(){
