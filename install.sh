@@ -5,6 +5,7 @@ set -Eeuo pipefail
 # FLIGHTCORE_4_3_0_RC5_V65_MAC_AUTO_OPEN_CHECKED_V1
 # FLIGHTCORE_4_3_0_RC6_V69_PUBLIC_ONE_TOUCH_MAC_LAUNCHER_V1
 # FLIGHTCORE_4_3_0_RC6_V70_PUBLIC_ONE_TOUCH_STALE_HOSTKEY_RECOVERY_V1
+# FLIGHTCORE_4_3_0_RC7_V73_MAC_TERMINAL_EXACT_ONCE_WIZARD_V1
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
 
 REPO="johbaa/SIYI_PI_Installer"
@@ -45,10 +46,10 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   # Public fresh-install launcher for macOS. Browser is the primary progress UI.
   cd "$HOME/Downloads"
   TS="$(date '+%Y%m%d_%H%M%S')"
-  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC6_FRESH_INSTALL_${TS}.txt"
+  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC7_FRESH_INSTALL_${TS}.txt"
   exec > >(tee "$LOG") 2>&1
 
-  echo "FlightCore 4.3.0 RC6 - fresh installation launcher"
+  echo "FlightCore 4.3.0 RC7 - fresh installation launcher"
   echo "Progress is shown in the browser on port 8090."
   echo
 
@@ -81,10 +82,70 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   "$SSH_KEYGEN_BIN" -R "$PI_IP" >/dev/null 2>&1 || true
   echo "Cleared stale SSH host-key cache for $PI_IP (if present)."
 
+  # Capture only the Terminal window that launched this installer. RC7 never
+  # hides or closes unrelated Terminal windows.
+  INSTALLER_TERMINAL_WINDOW_ID=""
+  if [[ "${TERM_PROGRAM:-}" == "Apple_Terminal" ]] && command -v osascript >/dev/null 2>&1; then
+    INSTALLER_TERMINAL_WINDOW_ID="$(/usr/bin/osascript -e 'tell application "Terminal" to if (count of windows) > 0 then return id of front window' 2>/dev/null || true)"
+    INSTALLER_TERMINAL_WINDOW_ID="$(printf '%s' "$INSTALLER_TERMINAL_WINDOW_ID" | tr -cd '0-9')"
+  fi
+  LAUNCH_SUCCESS=0
+  TERMINAL_MINIMIZED=0
+  FIRST_SETUP_OPENED=0
+
+  mac_minimize_installer_terminal(){
+    [[ -n "$INSTALLER_TERMINAL_WINDOW_ID" ]] || return 0
+    /usr/bin/osascript - "$INSTALLER_TERMINAL_WINDOW_ID" <<'OSA' >/dev/null 2>&1 || return 0
+on run argv
+  set wid to (item 1 of argv) as integer
+  tell application "Terminal"
+    try
+      set miniaturized of window id wid to true
+    end try
+  end tell
+end run
+OSA
+    TERMINAL_MINIMIZED=1
+  }
+  mac_restore_installer_terminal(){
+    [[ -n "$INSTALLER_TERMINAL_WINDOW_ID" ]] || return 0
+    /usr/bin/osascript - "$INSTALLER_TERMINAL_WINDOW_ID" <<'OSA' >/dev/null 2>&1 || return 0
+on run argv
+  set wid to (item 1 of argv) as integer
+  tell application "Terminal"
+    try
+      set miniaturized of window id wid to false
+      set frontmost to true
+    end try
+  end tell
+end run
+OSA
+  }
+  mac_close_installer_terminal_after_exit(){
+    [[ -n "$INSTALLER_TERMINAL_WINDOW_ID" ]] || return 0
+    # Schedule the close so this shell can finish, flush its log and exit first.
+    /usr/bin/osascript - "$INSTALLER_TERMINAL_WINDOW_ID" <<'OSA' >/dev/null 2>&1 &
+on run argv
+  set wid to (item 1 of argv) as integer
+  delay 1
+  tell application "Terminal"
+    try
+      close window id wid
+    end try
+  end tell
+end run
+OSA
+  }
+
   SSH_CONTROL="${TMPDIR:-/tmp}/flightcore-ssh-${BASHPID:-$$}.sock"
   cleanup_mac(){
     ssh -S "$SSH_CONTROL" -O exit "$PI_USER@$PI_IP" >/dev/null 2>&1 || true
     rm -f "$SSH_CONTROL" /tmp/flightcore-progress-state.$$ >/dev/null 2>&1 || true
+    if [[ "$LAUNCH_SUCCESS" -eq 1 ]]; then
+      mac_close_installer_terminal_after_exit || true
+    elif [[ "$TERMINAL_MINIMIZED" -eq 1 ]]; then
+      mac_restore_installer_terminal || true
+    fi
   }
   trap cleanup_mac EXIT
   SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2 -o ControlPath="$SSH_CONTROL")
@@ -139,6 +200,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
         echo "Progress WebUI available - opening browser."
         if mac_open_url "$PROGRESS_URL"; then
           PROGRESS_OPENED=1
+          mac_minimize_installer_terminal || true
         else
           echo "Browser auto-open request failed; retrying while Progress WebUI remains reachable."
         fi
@@ -151,12 +213,17 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 
     if curl -fsS --max-time 2 "$FIRST_SETUP_URL" >/dev/null 2>&1; then
       echo "First Setup is available."
-      [[ "$PROGRESS_OPENED" -eq 1 ]] || mac_open_url "$FIRST_SETUP_URL" || true
+      # If the Progress WebUI was opened, it owns the single same-tab redirect
+      # to First Setup. Never open a second browser tab/window from Terminal.
+      if [[ "$PROGRESS_OPENED" -eq 0 && "$FIRST_SETUP_OPENED" -eq 0 ]]; then
+        if mac_open_url "$FIRST_SETUP_URL"; then FIRST_SETUP_OPENED=1; fi
+      fi
       wait "$SSH_PID" >/dev/null 2>&1 || true
       echo
       echo "FRESH INSTALL LAUNCHER: PASS"
       echo "First Setup: $FIRST_SETUP_URL"
       echo "Log: $LOG"
+      LAUNCH_SUCCESS=1
       exit 0
     fi
 
@@ -188,12 +255,15 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   deadline=$(( $(date +%s) + 600 ))
   while (( $(date +%s) < deadline )); do
     if curl -fsS --max-time 3 "$FIRST_SETUP_URL" >/dev/null 2>&1; then
-      echo "First Setup available - opening browser."
-      mac_open_url "$FIRST_SETUP_URL" || true
+      echo "First Setup available."
+      if [[ "$PROGRESS_OPENED" -eq 0 && "$FIRST_SETUP_OPENED" -eq 0 ]]; then
+        if mac_open_url "$FIRST_SETUP_URL"; then FIRST_SETUP_OPENED=1; fi
+      fi
       echo
       echo "FRESH INSTALL LAUNCHER: PASS"
       echo "First Setup: $FIRST_SETUP_URL"
       echo "Log: $LOG"
+      LAUNCH_SUCCESS=1
       exit 0
     fi
     sleep 3
