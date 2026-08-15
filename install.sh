@@ -7,6 +7,7 @@ set -Eeuo pipefail
 # FLIGHTCORE_4_3_0_RC6_V70_PUBLIC_ONE_TOUCH_STALE_HOSTKEY_RECOVERY_V1
 # FLIGHTCORE_4_3_0_RC7_V73_MAC_TERMINAL_EXACT_ONCE_WIZARD_V1
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
+# FLIGHTCORE_4_3_0_RC9_CANONICAL_IDENTITY_BOOTSTRAP_V1
 
 REPO="johbaa/SIYI_PI_Installer"
 API_REF="https://api.github.com/repos/${REPO}/git/ref/heads/main"
@@ -46,10 +47,10 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   # Public fresh-install launcher for macOS. Browser is the primary progress UI.
   cd "$HOME/Downloads"
   TS="$(date '+%Y%m%d_%H%M%S')"
-  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC7_FRESH_INSTALL_${TS}.txt"
+  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC9_FRESH_INSTALL_${TS}.txt"
   exec > >(tee "$LOG") 2>&1
 
-  echo "FlightCore 4.3.0 RC7 - fresh installation launcher"
+  echo "FlightCore 4.3.0 RC9 - fresh installation launcher"
   echo "Progress is shown in the browser on port 8090."
   echo
 
@@ -280,14 +281,14 @@ cd "$TMP"
 HEAD_SHA="$(resolve_head_sha)"
 RAW_BASE="${RAW_REPO}/${HEAD_SHA}"
 curl -fsSL -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' -o manifest.json "$RAW_BASE/manifest.json"
-read -r VERSION ARCHIVE CHECKSUM < <(python3 - <<'PYMAN'
+read -r RELEASE_IDENTITY ARCHIVE CHECKSUM < <(python3 - <<'PYMAN'
 import json,re
 m=json.load(open('manifest.json'))
-version=str(m.get('stable','')).strip(); archive=str(m.get('archive','')).strip(); checksum=str(m.get('checksum','')).strip()
-if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+',version): raise SystemExit('invalid manifest version')
-expected=f'FLIGHTCORE_RPI_INSTALLER_RELEASE_{version}.tar.gz'
+identity=str(m.get('release_identity','')).strip(); archive=str(m.get('archive','')).strip(); checksum=str(m.get('checksum','')).strip()
+if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+-rc\.[1-9][0-9]*',identity): raise SystemExit('invalid manifest release identity')
+expected=f'FLIGHTCORE_RPI_INSTALLER_RELEASE_{identity}.tar.gz'
 if archive!=expected or checksum!=expected.replace('.tar.gz','.sha256'): raise SystemExit('unexpected FlightCore release filenames')
-print(version,archive,checksum)
+print(identity,archive,checksum)
 PYMAN
 )
 curl -fsSL -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' -o "$ARCHIVE" "$RAW_BASE/$ARCHIVE"
