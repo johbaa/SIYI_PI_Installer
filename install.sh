@@ -7,7 +7,7 @@ set -Eeuo pipefail
 # FLIGHTCORE_4_3_0_RC6_V70_PUBLIC_ONE_TOUCH_STALE_HOSTKEY_RECOVERY_V1
 # FLIGHTCORE_4_3_0_RC7_V73_MAC_TERMINAL_EXACT_ONCE_WIZARD_V1
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
-# FLIGHTCORE_4_3_0_RC9_CANONICAL_IDENTITY_BOOTSTRAP_V1
+# FLIGHTCORE_4_3_0_RC13_CANONICAL_IDENTITY_BOOTSTRAP_V1
 
 REPO="johbaa/SIYI_PI_Installer"
 API_REF="https://api.github.com/repos/${REPO}/git/ref/heads/main"
@@ -47,10 +47,10 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   # Public fresh-install launcher for macOS. Browser is the primary progress UI.
   cd "$HOME/Downloads"
   TS="$(date '+%Y%m%d_%H%M%S')"
-  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC9_FRESH_INSTALL_${TS}.txt"
+  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC13_FRESH_INSTALL_${TS}.txt"
   exec > >(tee "$LOG") 2>&1
 
-  echo "FlightCore 4.3.0 RC9 - fresh installation launcher"
+  echo "FlightCore 4.3.0 RC13 - fresh installation launcher"
   echo "Progress is shown in the browser on port 8090."
   echo
 
