@@ -8,25 +8,36 @@ set -Eeuo pipefail
 # FLIGHTCORE_4_3_0_RC7_V73_MAC_TERMINAL_EXACT_ONCE_WIZARD_V1
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
 # FLIGHTCORE_4_3_0_RC13_CANONICAL_IDENTITY_BOOTSTRAP_V1
+# FLIGHTCORE_4_3_0_RC14_CACHEABLE_HASH_PINNED_PUBLIC_INSTALLER_V1
+# FLIGHTCORE_4_3_0_RC15_PUBLIC_INSTALLER_IMMUTABLE_REUSE_V1
 
 REPO="johbaa/SIYI_PI_Installer"
-API_REF="https://api.github.com/repos/${REPO}/git/ref/heads/main"
-RAW_REPO="https://raw.githubusercontent.com/${REPO}"
+RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"
+MANIFEST_URL="${RAW_BASE}/manifest.json"
 
-resolve_head_sha() {
-  if [[ "${FLIGHTCORE_PINNED_HEAD:-}" =~ ^[0-9a-fA-F]{40}$ ]]; then
-    printf '%s\n' "$FLIGHTCORE_PINNED_HEAD"
-    return 0
+download_release_file() {
+  local url="$1" output="$2"
+  curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 \
+    --connect-timeout 15 --max-time 120 "$url" -o "$output"
+}
+
+manifest_installer_sha() {
+  python3 - "$1" <<'PYMANIFESTSHA'
+import json,re,sys
+m=json.load(open(sys.argv[1],encoding='utf-8'))
+digest=str(m.get('installer_sha256') or '').strip().lower()
+if not re.fullmatch(r'[0-9a-f]{64}',digest):
+    raise SystemExit('invalid published installer SHA-256')
+print(digest)
+PYMANIFESTSHA
+}
+
+file_sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    shasum -a 256 "$1" | awk '{print $1}'
   fi
-  local json sha
-  json="$(curl -fsSL --max-time 15 \
-    -H 'Accept: application/vnd.github+json' \
-    -H 'Cache-Control: no-cache, no-store, max-age=0' \
-    -H 'Pragma: no-cache' \
-    "${API_REF}?cache_bust=$(date +%s)-$$")"
-  sha="$(printf '%s\n' "$json" | sed -nE 's/.*"sha"[[:space:]]*:[[:space:]]*"([0-9a-fA-F]{40})".*/\1/p' | head -n1)"
-  [[ "$sha" =~ ^[0-9a-fA-F]{40}$ ]] || { echo 'Unable to resolve immutable GitHub main commit SHA.' >&2; return 1; }
-  printf '%s\n' "$sha"
 }
 
 mac_open_url() {
@@ -47,12 +58,24 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   # Public fresh-install launcher for macOS. Browser is the primary progress UI.
   cd "$HOME/Downloads"
   TS="$(date '+%Y%m%d_%H%M%S')"
-  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC13_FRESH_INSTALL_${TS}.txt"
+  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC15_FRESH_INSTALL_${TS}.txt"
   exec > >(tee "$LOG") 2>&1
 
-  echo "FlightCore 4.3.0 RC13 - fresh installation launcher"
+  echo "FlightCore 4.3.0 RC15 - fresh installation launcher"
   echo "Progress is shown in the browser on port 8090."
   echo
+
+  BOOTSTRAP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/flightcore-bootstrap.XXXXXX")"
+  BOOTSTRAP_MANIFEST="$BOOTSTRAP_DIR/manifest.json"
+  download_release_file "$MANIFEST_URL" "$BOOTSTRAP_MANIFEST"
+  EXPECTED_INSTALLER_SHA="$(manifest_installer_sha "$BOOTSTRAP_MANIFEST")"
+  ACTUAL_INSTALLER_SHA="$(file_sha256 "$0")"
+  [[ "$ACTUAL_INSTALLER_SHA" == "$EXPECTED_INSTALLER_SHA" ]] || {
+    echo "ERROR: Public installer checksum does not match the published manifest." >&2
+    rm -rf "$BOOTSTRAP_DIR"
+    exit 1
+  }
+  echo "Verified published RC15 installer SHA-256."
 
   DEFAULT_PI_USER="${PI_USER:-pi}"
   LAST_IP_FILE="$HOME/Downloads/.flightcore_last_pi_ip"
@@ -142,6 +165,7 @@ OSA
   cleanup_mac(){
     ssh -S "$SSH_CONTROL" -O exit "$PI_USER@$PI_IP" >/dev/null 2>&1 || true
     rm -f "$SSH_CONTROL" /tmp/flightcore-progress-state.$$ >/dev/null 2>&1 || true
+    rm -rf "$BOOTSTRAP_DIR" >/dev/null 2>&1 || true
     if [[ "$LAUNCH_SUCCESS" -eq 1 ]]; then
       mac_close_installer_terminal_after_exit || true
     elif [[ "$TERMINAL_MINIMIZED" -eq 1 ]]; then
@@ -171,14 +195,13 @@ OSA
     exit 3
   fi
 
-  echo "Resolving current GitHub release commit..."
-  HEAD_SHA="$(resolve_head_sha)"
-  [[ "$HEAD_SHA" =~ ^[0-9a-fA-F]{40}$ ]] || { echo 'ERROR: invalid GitHub commit SHA.' >&2; exit 1; }
-  echo "Pinned GitHub commit: $HEAD_SHA"
-  RAW_BASE="${RAW_REPO}/${HEAD_SHA}"
-
-  REMOTE_CMD="set -Eeuo pipefail; curl -fsSL -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' '${RAW_BASE}/install.sh' | FLIGHTCORE_PINNED_HEAD='${HEAD_SHA}' bash"
-  echo "Starting commit-pinned FlightCore installer on Pi..."
+  REMOTE_INSTALLER="/tmp/flightcore-public-installer-${BASHPID:-$$}.sh"
+  scp "${SSH_OPTS[@]}" "$0" "$PI_USER@$PI_IP:$REMOTE_INSTALLER" >/dev/null || {
+    echo 'ERROR: Could not transfer the verified public installer to the Pi.' >&2
+    exit 1
+  }
+  REMOTE_CMD="set -Eeuo pipefail; chmod 0700 '$REMOTE_INSTALLER'; bash '$REMOTE_INSTALLER'; rc=\$?; rm -f '$REMOTE_INSTALLER'; exit \$rc"
+  echo "Starting hash-verified FlightCore installer on Pi..."
   set +e
   ssh -T "${SSH_OPTS[@]}" "$PI_USER@$PI_IP" "$REMOTE_CMD" </dev/null &
   SSH_PID=$!
@@ -278,22 +301,31 @@ fi
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/flightcore-install.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 cd "$TMP"
-HEAD_SHA="$(resolve_head_sha)"
-RAW_BASE="${RAW_REPO}/${HEAD_SHA}"
-curl -fsSL -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' -o manifest.json "$RAW_BASE/manifest.json"
-read -r RELEASE_IDENTITY ARCHIVE CHECKSUM < <(python3 - <<'PYMAN'
+download_release_file "$MANIFEST_URL" manifest.json
+EXPECTED_INSTALLER_SHA="$(manifest_installer_sha manifest.json)"
+ACTUAL_INSTALLER_SHA="$(file_sha256 "$0")"
+[[ "$ACTUAL_INSTALLER_SHA" == "$EXPECTED_INSTALLER_SHA" ]] || {
+  echo 'Public installer checksum does not match the published manifest.' >&2
+  exit 1
+}
+read -r RELEASE_IDENTITY ARCHIVE CHECKSUM EXPECTED_PAYLOAD_SHA < <(python3 - <<'PYMAN'
 import json,re
 m=json.load(open('manifest.json'))
-identity=str(m.get('release_identity','')).strip(); archive=str(m.get('archive','')).strip(); checksum=str(m.get('checksum','')).strip()
+identity=str(m.get('release_identity','')).strip(); archive=str(m.get('archive','')).strip(); checksum=str(m.get('checksum','')).strip(); payload=str(m.get('payload_sha256','')).strip().lower()
 if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+-rc\.[1-9][0-9]*',identity): raise SystemExit('invalid manifest release identity')
 expected=f'FLIGHTCORE_RPI_INSTALLER_RELEASE_{identity}.tar.gz'
 if archive!=expected or checksum!=expected.replace('.tar.gz','.sha256'): raise SystemExit('unexpected FlightCore release filenames')
-print(identity,archive,checksum)
+if not re.fullmatch(r'[0-9a-f]{64}',payload): raise SystemExit('invalid payload SHA-256')
+print(identity,archive,checksum,payload)
 PYMAN
 )
-curl -fsSL -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' -o "$ARCHIVE" "$RAW_BASE/$ARCHIVE"
-curl -fsSL -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' -o "$CHECKSUM" "$RAW_BASE/$CHECKSUM"
+download_release_file "$RAW_BASE/$ARCHIVE" "$ARCHIVE"
+download_release_file "$RAW_BASE/$CHECKSUM" "$CHECKSUM"
 sha256sum -c "$CHECKSUM"
+[[ "$(file_sha256 "$ARCHIVE")" == "$EXPECTED_PAYLOAD_SHA" ]] || {
+  echo 'Published FlightCore archive checksum does not match the manifest.' >&2
+  exit 1
+}
 ROOT="$(tar -tzf "$ARCHIVE" | awk -F/ 'NF{print $1;exit}')"
 [[ "$ROOT" =~ ^[A-Za-z0-9._-]+$ ]] || { echo 'Unsafe archive root' >&2; exit 1; }
 tar -xzf "$ARCHIVE"
