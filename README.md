@@ -1,13 +1,17 @@
 # FlightCore Control Platform
 
-Current release candidate: FlightCore 4.3.0 RC16.
+Current release candidate: FlightCore 4.3.0 RC17.
 
-Canonical machine identity: `4.3.0-rc.16`.
+Canonical machine identity: `4.3.0-rc.17`.
 
-RC16 prevents ground-state wind estimates from producing a false TURN HOME `NOW`. TURN HOME remains inactive while disarmed or on the ground, qualifies airborne motion and measured wind before use, and ramps measured-wind influence after takeoff. Genuine airborne infeasible-return conditions remain `NOW`, negative energy margins remain available, and the feature remains advisory only.
+RC17 repairs the confirmed RC13-to-RC16 native-upgrade failure at the final ownership-aware validation stage. Mandatory preservation now restores the saved UID/GID with `lchown` for every preserved top-level symbolic link before final validation. The correction is generic; `/etc/siyi/joystick.json` exposed the defect but is not special-cased.
 
-ARSP Health is now a selectable Ground Station telemetry value instead of a top-bar pill. Existing ARSP sensing, polling, health transitions, voice alerts, Smooth Voltage safeguards and flight-control behavior are unchanged.
+This rebuilt RC17 also adds complete, analysis-grade TURN HOME flight logging without changing TURN HOME calculations or advisory behavior. The 2 Hz flight record now captures every scalar calculation input, threshold, intermediate projection and output; actual consumed mAh; Home and aircraft geometry; voltage- and capacity-limited margins; measured and forecast wind qualification; forecast metadata; and negative overdue/emergency projections. Each provider refresh is preserved once as a deduplicated forecast-input event.
 
-RC16 also corrects native upgrade source verification: the ownership-aware live fingerprint remains mandatory, while the invalid comparison with an offline `--skip-ownership` digest is removed. Exact source build, status, manifest and controlled-file hashes remain enforced.
+CSV export now includes every recorded sample field and stamps every row with the exact FlightCore product version, release identity, RC, build ID, source commit, release status and installed payload-manifest SHA-256.
 
-RC14 release discovery and installer-integrity behavior and RC15 SIYI cold-boot/stream-recovery behavior remain intact. Existing systems upgrade only through the read-only Registry-frozen native routes. Fresh installation uses the public one-touch installer without a separate user preflight.
+The strict ownership-aware release fingerprint remains mandatory. Exact source identity, build, accepted status, manifest and controlled-file hashes remain enforced.
+
+All RC16 functionality is retained unchanged. Other than the expanded forensic evidence contract, RC17 changes no UI, TURN HOME calculation/countdown behavior, settings schema, defaults, networking, LTE Health, Smooth Voltage, ARSP, SIYI stream behavior, public fresh-install command or flight-control authority.
+
+By explicit product-owner authorization, RC17 reuses the unchanged RC16 compatibility matrix—RC6/V71, RC12, RC13 and genuine fresh installation—and performs no additional Registry freeze or final Registry recheck until a physical RC17 upgrade succeeds.
