@@ -1,19 +1,19 @@
 {
   "archive": "FLIGHTCORE_RPI_INSTALLER_RELEASE_4.3.0-rc.18.tar.gz",
-  "build_id": "20260818.230500-b52a215",
+  "build_id": "20260818.233500-4fb749e",
   "candidate": 18,
   "channel": "rc",
   "checksum": "FLIGHTCORE_RPI_INSTALLER_RELEASE_4.3.0-rc.18.sha256",
   "cloud_contract": "Registry v12 chunked-v1 plus legacy compatibility",
   "hotfix_state": "clean",
   "installer_sha256": "3ff63838f2e6bf6841a6383de98dbe8e4a8879bf529f7efea1f7ec76d5dbe6a4",
-  "payload_manifest_sha256": "ec5c9168d9077b087b5024e8f02b28aaf1b65b31209c66912d72fe0c37c1a6ad",
-  "payload_sha256": "6acab6691dbe05fb81e0d3a62f1a8893dd54ecf27a03884c44c45d2293149eb9",
+  "payload_manifest_sha256": "2c1d91c03afb6402d03da92635705d3e8dd89cae3fc86e67b561ca13ad564114",
+  "payload_sha256": "4109925000218ae62b45016e147ba0b40d54fe0885c48edc861c8af97be2572b",
   "product": "FlightCore",
   "registry_gate": "Owner-supplied 2026-08-18 snapshot frozen: RC6/V71 and exact RC17; no repeated Registry query",
   "release_candidate": 18,
   "release_identity": "4.3.0-rc.18",
-  "source_commit": "b52a21591c79b9179a9c653c5d6c06e51a638265",
+  "source_commit": "4fb749ed4d098dff4683ae2cdf5cc3d48e8d9d13",
   "stable": "4.3.0",
   "target_version": "4.3.0"
 }
