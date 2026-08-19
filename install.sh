@@ -9,7 +9,7 @@ set -Eeuo pipefail
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
 # FLIGHTCORE_4_3_0_RC13_CANONICAL_IDENTITY_BOOTSTRAP_V1
 # FLIGHTCORE_4_3_0_RC14_CACHEABLE_HASH_PINNED_PUBLIC_INSTALLER_V1
-# FLIGHTCORE_4_3_0_RC24_RESUMABLE_PUBLIC_DOWNLOAD_V2
+# FLIGHTCORE_4_3_0_RC25_RESUMABLE_PUBLIC_DOWNLOAD_V2
 
 REPO="johbaa/SIYI_PI_Installer"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"
@@ -79,10 +79,10 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   # Public fresh-install launcher for macOS. Browser is the primary progress UI.
   cd "$HOME/Downloads"
   TS="$(date '+%Y%m%d_%H%M%S')"
-  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC24_FRESH_INSTALL_${TS}.txt"
+  LOG="$HOME/Downloads/FLIGHTCORE_4.3.0_RC25_FRESH_INSTALL_${TS}.txt"
   exec > >(tee "$LOG") 2>&1
 
-  echo "FlightCore 4.3.0 RC24 - fresh installation launcher"
+  echo "FlightCore 4.3.0 RC25 - fresh installation launcher"
   echo "Progress is shown in the browser on port 8090."
   echo
 
@@ -96,7 +96,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     rm -rf "$BOOTSTRAP_DIR"
     exit 1
   }
-  echo "Verified published RC24 installer SHA-256."
+  echo "Verified published RC25 installer SHA-256."
 
   DEFAULT_PI_USER="${PI_USER:-pi}"
   LAST_IP_FILE="$HOME/Downloads/.flightcore_last_pi_ip"
