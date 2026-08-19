@@ -6,7 +6,7 @@
   "checksum": "FLIGHTCORE_RPI_INSTALLER_RELEASE_4.3.0-rc.20.sha256",
   "cloud_contract": "Registry v13 chunked-v2 with chunked-v1 and legacy compatibility",
   "hotfix_state": "clean",
-  "installer_sha256": "bbf2cde6b0ec88845763bffd24073ecc813e92a788761631dbaec3f8af1a1b1b",
+  "installer_sha256": "b253ff486623a8e92c70541ed19da49757b89606e8b0d46fec3b469aad3d29e7",
   "payload_manifest_sha256": "d2102a7bf77c0f59c29d8cb287d4ad2ce7924688bbc6dcc0607bc66438083b4b",
   "payload_sha256": "bd8adff828cb129b6ccd56c8f3cfdbe513bb52f041a578316dfee067875b2090",
   "product": "FlightCore",

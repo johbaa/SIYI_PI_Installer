@@ -9,7 +9,7 @@ set -Eeuo pipefail
 # FLIGHTCORE_4_2_3_RC10_GITHUB_HEAD_PIN_V1
 # FLIGHTCORE_4_3_0_RC13_CANONICAL_IDENTITY_BOOTSTRAP_V1
 # FLIGHTCORE_4_3_0_RC14_CACHEABLE_HASH_PINNED_PUBLIC_INSTALLER_V1
-# FLIGHTCORE_4_3_0_RC20_PUBLIC_INSTALLER_IMMUTABLE_REUSE_V1
+# FLIGHTCORE_4_3_0_RC20_RESUMABLE_PUBLIC_DOWNLOAD_V2
 
 REPO="johbaa/SIYI_PI_Installer"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"
@@ -17,8 +17,29 @@ MANIFEST_URL="${RAW_BASE}/manifest.json"
 
 download_release_file() {
   local url="$1" output="$2"
-  curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 \
-    --connect-timeout 15 --max-time 120 "$url" -o "$output"
+  local partial="${output}.part" attempt rc
+  for attempt in 1 2 3 4 5 6; do
+    echo "Downloading $(basename "$output") - attempt $attempt/6 ..."
+    touch "$partial"
+    set +e
+    curl -fL --connect-timeout 20 --max-time 900 \
+      --speed-time 90 --speed-limit 512 --continue-at - \
+      "$url" -o "$partial"
+    rc=$?
+    set -e
+    if [[ "$rc" -eq 0 ]]; then
+      mv -f "$partial" "$output"
+      return 0
+    fi
+    # curl 33 means the origin declined a range request. Restart once from
+    # byte zero; all other transfer failures retain the verified partial file.
+    if [[ "$rc" -eq 33 ]]; then
+      : >"$partial"
+    fi
+    [[ "$attempt" -lt 6 ]] && sleep $((attempt * 2))
+  done
+  echo "ERROR: Could not download $(basename "$output") after six resumable attempts." >&2
+  return 1
 }
 
 manifest_installer_sha() {
