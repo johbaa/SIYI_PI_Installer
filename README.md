@@ -1,5 +1,9 @@
-# FlightCore 4.3.0 RC38
+# FlightCore 4.3.0 RC39
 
-Immutable candidate `4.3.0-rc.38` / `20260824.182435-dd98547`.
+Immutable candidate `4.3.0-rc.39` / `20260825.030539-fd21ca6`.
 
-This public directory intentionally contains exactly five files. Verify `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.3.0-rc.38.sha256`, then use the resumable `install.sh`. RC38 retains RC37's integrated multi-unit rendering and makes the canonical `GroundStationWhepPlayer` the sole Air Link lifecycle owner. A decoded-frame stall now soft-resumes the existing media element without tearing down a healthy WHEP peer, stopping its track, or cloning the video element. Hard reconnect remains available for confirmed peer failure, sustained network disconnect, source-epoch change, and manual resync. Exact accepted RC37, RC36, and Registry-required RC6 upgrade routes are checksum-pinned; retained clean historical routes and fresh installation remain supported. Physical Android dual-stream and flight acceptance remain required.
+This public directory intentionally contains exactly five files. Verify `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.3.0-rc.39.sha256`, then use the resumable `install.sh`.
+
+RC39 preserves RC38's Ground Station lifecycle and RC37's integrated unit rendering. It keeps the existing MediaMTX v1.12.2 topology while applying the upstream H.265 aggregation-header correction to exact gortsplib v4.14.0, adds rate-limited exact packet-processing evidence, and deploys a deterministic checksum-pinned embedded ARM64 media binary. It also adds the Navigation telemetry item Turning distance by exposing the existing wind-aware TURN HOME direct-distance result without another solver or polling loop. RC18 is the last proven-good in-flight baseline; RC19 is not declared the first bad version.
+
+Exact accepted RC38, retained RC36, Registry-required RC6 and clean historical upgrade routes are checksum-pinned; genuine fresh installation remains supported. Physical Android dual-stream and controlled-flight acceptance remain required.
