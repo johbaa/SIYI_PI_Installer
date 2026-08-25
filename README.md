@@ -1,7 +1,7 @@
-# FlightCore 4.3.0 RC40
+# FlightCore 4.3.0 RC41
 
-Immutable candidate `4.3.0-rc.40` / `20260825.075053-0c96995`.
+Immutable candidate `4.3.0-rc.41` / `20260825.082059-3face99`.
 
 This directory intentionally contains exactly five files. The canonical public install.sh is the self-contained manifest/hash-pinned bootstrap; it downloads and verifies the selected release archive before invoking the internal package installer with all companion files present.
 
-RC40 supersedes the failed RC39 publication without mutating it. It carries forward the RC39 MediaMTX H.265 correction and Turning distance telemetry while repairing the official native-upgrade and fresh-install bootstrap. RC18 remains the last proven-good in-flight Air Link baseline; RC19 is not declared the first bad version.
+RC41 supersedes published but rejected RC40 without mutating it. RC40 repaired RC39's public bootstrap but its inner installer rejected exact RC38 after normalizing 4.3.0-rc.38 to 4.3.0. RC41 corrects that route predicate, retains exact hash/fingerprint pins, and carries the RC39/RC40 runtime unchanged. RC18 remains the last proven-good in-flight Air Link baseline; RC19 is not declared the first bad version.
