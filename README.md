@@ -1,17 +1,17 @@
-# FlightCore 4.4.0 RC9
+# FlightCore 4.4.0 RC11
 
-This repository contains the immutable five-file FlightCore `4.4.0-rc.9` release set.
+This repository contains the immutable five-file FlightCore `4.4.0-rc.11` release set.
 
-RC9 supersedes failed immutable RC8. RC8's official public `install.sh` was the archive's internal installer, so native Software Update stopped at 0% while looking for the absent temporary companion `webui-ip.sh`. The failure occurred before archive download, transaction creation, backup, target modification or reboot.
+RC11 supersedes RC10 after RC10's local macOS publication fixture entered the interactive fresh-install launcher and timed out before any repository clone, commit or push. RC11 explicitly selects the Linux/Pi archive-bootstrap branch during that factory-only execution test. Normal macOS and Pi installer behavior is unchanged.
 
-RC9 restores the self-contained public bootstrap. It verifies its published SHA-256, downloads and verifies the manifest-selected archive and checksum, extracts the complete package, and invokes the internal installer beside every required companion file. An executable factory fixture now tests this complete path.
+RC11 retains RC10's lower-impact Flight Log implementation and strictly passive LTE diagnostics. LTE logging reuses only the results of existing router polls. It adds no request, ping, DNS lookup, throughput test, packet capture or other network probe. The existing 2-second status, 20-second context and 60-second network-mode cadence is unchanged.
 
-The RC8 runtime corrections are carried forward unchanged: the short-screen Control Center footer fix, bounded post-disarm cloud-log handoff, and persistent manually dismissed verified cloud-upload receipt with one voice announcement per uploaded log. RC9 does not intentionally change Air Link transport, LTE transmission logic, joystick behavior, or flight-controller failsafe authority.
+The protected 50 Hz latest-state WebSocket path, 650 ms command withdrawal, three-second browser liveness boundary and native flight-controller failsafe authority are unchanged. RC11 sends no automatic mode or RTL command.
 
 The public repository contains exactly:
 
 - `README.md`
 - `install.sh`
 - `manifest.json`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.9.tar.gz`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.9.sha256`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.11.tar.gz`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.11.sha256`
