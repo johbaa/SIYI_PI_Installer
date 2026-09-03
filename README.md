@@ -1,19 +1,17 @@
-# FlightCore 4.4.0 RC18
+# FlightCore 4.4.0 RC19
 
-This repository contains the immutable five-file FlightCore `4.4.0-rc.18` release set.
+This repository contains the immutable five-file FlightCore `4.4.0-rc.19` release set.
 
-RC18 corrects the Missions presentation found during RC17 bench testing. Ordinary Waypoint, Takeoff, Land and RTL details contain no Jump wording or control.
+RC19 adds an **Insert waypoint** map mode. Click a mission route segment to insert at that coordinate immediately before its later item. The inserted waypoint inherits the preceding waypoint's frame and altitude, becomes selected, and renumbers later items. Existing ArduPilot `MAV_CMD_DO_JUMP` targets shift when needed so they still reference the same logical item.
 
-A selected standalone ArduPilot `MAV_CMD_DO_JUMP` (177) row opens a separate **Jump action** editor containing only **Jump back to item**, **Number of additional repeats**, its ArduPilot explanation and **Delete Jump action**. A Jump action has no waypoint Action selector, position, altitude or map marker.
+RC19 also adds an independent two-click **Measure A-B** tool. It shows one dashed line, A/B markers and Haversine ground distance in metres or kilometres until cleared or replaced. Measurement does not change the mission, dirty state, route distance, Cloud data or flight-controller state.
 
-ArduPilot HOME item 0, DO_JUMP param1/param2 semantics, the 15-Jump limit, cloud-only mission storage, tenant-scoped cloud delete and the confirmed-disarmed flight-controller boundary remain unchanged.
-
-Mission transfer still reuses the existing Ground Station MAVLink session and remains blocked unless the aircraft is positively confirmed disarmed. FlightCore does not arm, start a mission, command RTL, change flight mode or modify flight-controller parameters.
+RC18's separate Jump-action editor, HOME/DO_JUMP semantics, 15-Jump limit, Cloud-only mission storage and confirmed-disarmed flight-controller boundary remain unchanged. FlightCore does not arm, start a mission, command RTL, change flight mode or modify flight-controller parameters.
 
 The public repository contains exactly:
 
 - `README.md`
 - `install.sh`
 - `manifest.json`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.18.tar.gz`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.18.sha256`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.19.tar.gz`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.19.sha256`
