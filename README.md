@@ -1,12 +1,12 @@
-# FlightCore 4.4.0 RC17
+# FlightCore 4.4.0 RC18
 
-This repository contains the immutable five-file FlightCore `4.4.0-rc.17` release set.
+This repository contains the immutable five-file FlightCore `4.4.0-rc.18` release set.
 
-RC17 simplifies Missions storage to Cloud only in the visible UI, adds confirmed deletion of the selected tenant-scoped Cloud mission, and preserves pre-existing local mission files without exposing them. Cloud deletion never changes the editor or flight-controller mission.
+RC18 corrects the Missions presentation found during RC17 bench testing. Ordinary Waypoint, Takeoff, Land and RTL details contain no Jump wording or control.
 
-`Jump to item` is now only a standalone ArduPilot `MAV_CMD_DO_JUMP` mission action. Ordinary waypoint details do not expose an obsolete duplicate Jump field. Target item number and additional repeats map directly to ArduPilot parameters 1 and 2; HOME sequence 0 remains hidden and preserved at the flight-controller boundary.
+A selected standalone ArduPilot `MAV_CMD_DO_JUMP` (177) row opens a separate **Jump action** editor containing only **Jump back to item**, **Number of additional repeats**, its ArduPilot explanation and **Delete Jump action**. A Jump action has no waypoint Action selector, position, altitude or map marker.
 
-The inactive `My location` and `Add at map centre` controls are removed. Deliberate map-click placement, marker drag/select/delete, visible table headings and the map-dominant planner remain.
+ArduPilot HOME item 0, DO_JUMP param1/param2 semantics, the 15-Jump limit, cloud-only mission storage, tenant-scoped cloud delete and the confirmed-disarmed flight-controller boundary remain unchanged.
 
 Mission transfer still reuses the existing Ground Station MAVLink session and remains blocked unless the aircraft is positively confirmed disarmed. FlightCore does not arm, start a mission, command RTL, change flight mode or modify flight-controller parameters.
 
@@ -15,5 +15,5 @@ The public repository contains exactly:
 - `README.md`
 - `install.sh`
 - `manifest.json`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.17.tar.gz`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.17.sha256`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.18.tar.gz`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.18.sha256`
