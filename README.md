@@ -1,17 +1,17 @@
-# FlightCore 4.4.0 RC20
+# FlightCore 4.4.0 RC21
 
-This repository contains the immutable five-file FlightCore `4.4.0-rc.20` release set.
+This repository contains the immutable five-file FlightCore `4.4.0-rc.21` release set.
 
-RC20 adds passive 2 Hz flight-forensic evidence from telemetry already received by FlightCore: flight-state/touchdown changes, failsafe context, requested versus actual mode, mission sequence and `DO_JUMP` trace, navigation accuracy, aggregated control-path data, battery, GPS/EKF changes, canonical wind fields, warning classes and a per-flight configuration fingerprint.
+RC21 is the corrective reissue of failed RC20. RC20 stopped at 40% because its payload manifest declared `release_identity` as `4.4.0-rc.20` while retaining `release_version` as `4.4.0-rc.19`. The installer rejected that inconsistency and completed transactional rollback to exact accepted RC19. RC20 is consumed, non-promotable and not an approved source.
 
-Existing modem replies are normalized into LTE quality and serving-cell identity when exposed by the modem: RSRP, RSRQ, SINR, band, EARFCN, PCI, network mode, MCC, MNC, TAC, ECI, eNodeB and sector. Serving-cell changes create sparse handover events. Subscriber identifiers and secrets are excluded.
+RC21 makes the target release identity single-source across the payload manifest, installer, installed marker and bundled metadata. Factory qualification executes the actual target fingerprint against both the consistent RC21 manifest and a deliberately drifted manifest, and the final archive gate repeats the identity check before publication.
 
-RC20 does not add a MAVLink stream/request, modem command/poll, active diagnostic, packet capture or in-flight upload, and does not change the 0.5-second sample period. RC19 Missions behavior and every protected flight-control boundary remain unchanged. Public tower resolution is supplied separately by the deployed FlightCore Cloud `4.4.0-cloud-ui.6`, after upload.
+The passive logging and LTE-serving-cell functionality intended for RC20 is carried forward unchanged. RC21 adds no MAVLink stream or request, modem command or poll, active diagnostic, packet capture, in-flight upload, sample-rate change, flight-control change, mission change, or video change. Public tower resolution remains in the separately deployed FlightCore Cloud `4.4.0-cloud-ui.6`.
 
 The public repository contains exactly:
 
 - `README.md`
 - `install.sh`
 - `manifest.json`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.20.tar.gz`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.20.sha256`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.21.tar.gz`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.21.sha256`
