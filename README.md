@@ -1,17 +1,17 @@
-# FlightCore 4.4.0 RC19
+# FlightCore 4.4.0 RC20
 
-This repository contains the immutable five-file FlightCore `4.4.0-rc.19` release set.
+This repository contains the immutable five-file FlightCore `4.4.0-rc.20` release set.
 
-RC19 adds an **Insert waypoint** map mode. Click a mission route segment to insert at that coordinate immediately before its later item. The inserted waypoint inherits the preceding waypoint's frame and altitude, becomes selected, and renumbers later items. Existing ArduPilot `MAV_CMD_DO_JUMP` targets shift when needed so they still reference the same logical item.
+RC20 adds passive 2 Hz flight-forensic evidence from telemetry already received by FlightCore: flight-state/touchdown changes, failsafe context, requested versus actual mode, mission sequence and `DO_JUMP` trace, navigation accuracy, aggregated control-path data, battery, GPS/EKF changes, canonical wind fields, warning classes and a per-flight configuration fingerprint.
 
-RC19 also adds an independent two-click **Measure A-B** tool. It shows one dashed line, A/B markers and Haversine ground distance in metres or kilometres until cleared or replaced. Measurement does not change the mission, dirty state, route distance, Cloud data or flight-controller state.
+Existing modem replies are normalized into LTE quality and serving-cell identity when exposed by the modem: RSRP, RSRQ, SINR, band, EARFCN, PCI, network mode, MCC, MNC, TAC, ECI, eNodeB and sector. Serving-cell changes create sparse handover events. Subscriber identifiers and secrets are excluded.
 
-RC18's separate Jump-action editor, HOME/DO_JUMP semantics, 15-Jump limit, Cloud-only mission storage and confirmed-disarmed flight-controller boundary remain unchanged. FlightCore does not arm, start a mission, command RTL, change flight mode or modify flight-controller parameters.
+RC20 does not add a MAVLink stream/request, modem command/poll, active diagnostic, packet capture or in-flight upload, and does not change the 0.5-second sample period. RC19 Missions behavior and every protected flight-control boundary remain unchanged. Public tower resolution is supplied separately by the deployed FlightCore Cloud `4.4.0-cloud-ui.6`, after upload.
 
 The public repository contains exactly:
 
 - `README.md`
 - `install.sh`
 - `manifest.json`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.19.tar.gz`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.19.sha256`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.20.tar.gz`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.20.sha256`
