@@ -1,27 +1,31 @@
-# FlightCore 4.4.0 RC27
+# FlightCore 4.4.0 RC28
 
-FlightCore RC27 corrects the field-failed RC26 Home-marker projection by honoring the SIYI gimbal's declared earth/vehicle yaw frame and applying aircraft attitude exactly once. The fixed forward Air Link camera remains aircraft-frame only, and the off-screen marker travels continuously around the edge.
+RC28 corrects the packaging defect that caused RC27's first native upgrade to fail staged-install validation. RC27 carried different top-level and installed copies of `release-notes.md`; its installer correctly rolled the unit back to exact RC26.
 
-The disarmed-only **Simulated Home — 2 km bench test** creates an imaginary Home exactly 2 km ahead and 80 m below the imaginary aircraft, follows live aircraft attitude and SIYI gimbal orientation, and requires no GPS fix. Armed, stale, unknown or disconnected arm state discards it immediately. It cannot modify FC Home, GPS, attitude, mode, mission or MAVLink navigation.
+RC28 requires every duplicated release metadata file to be byte-identical. The deterministic archive builder refuses a mismatch, and the installer repeats the gate before dependency preparation, service interruption, backup or target deployment.
 
-The local Flight Logs viewer now presents ECI/eNodeB/sector/TAC and signal history even when MCC/MNC are unavailable. The separately controlled Cloud UI 7 companion provides the corresponding Cloud presentation; it is not part of this five-file device publication.
+The intended RC27 feature scope is carried forward unchanged:
+
+- camera-frame-correct Home **H**, including SIYI earth/vehicle yaw-frame handling and continuous full-sphere edge motion;
+- a browser-only simulated Home exactly 2 km ahead and 80 m below, available only while freshly connected and explicitly disarmed;
+- local and Cloud UI 7 presentation of partial ECI/eNodeB/sector/TAC history without fabricated tower coordinates.
 
 The public repository must contain exactly these five files:
 
 - `README.md`
 - `install.sh`
 - `manifest.json`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.27.tar.gz`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.27.sha256`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.28.tar.gz`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.28.sha256`
 
-RC27 supports a byte-exact recovery upgrade from failed installed RC26 and retains the exact accepted RC24 route. RC26 is consumed and non-promotable; it is an authorized source only, never acceptance evidence.
+RC28 supports the exact installed RC26 recovery route and the exact accepted RC24 route. Failed RC27 is not an upgrade source and must not be retried.
 
 Operator order:
 
-1. Run the RC27 publisher.
-2. Run the independent RC27 publication verifier.
-3. Run the exact RC26-to-RC27 or RC24-to-RC27 read-only preflight.
-4. Only after PASS, install RC27 from FlightCore Software Update.
-5. Run the post-upgrade check, bench acceptance and controlled flight acceptance.
+1. Run the RC28 publisher.
+2. Run the independent RC28 publication verifier.
+3. Run the exact RC26-to-RC28 or RC24-to-RC28 read-only preflight.
+4. Only after PASS, install RC28 from FlightCore Software Update.
+5. Run the post-upgrade checker, bench acceptance and controlled flight acceptance.
 
 Do not power off the Raspberry Pi during installation or post-reboot verification.
