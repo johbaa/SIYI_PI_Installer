@@ -1,31 +1,25 @@
-# FlightCore 4.4.0 RC28
+# FlightCore 4.4.0 RC30
 
-RC28 corrects the packaging defect that caused RC27's first native upgrade to fail staged-install validation. RC27 carried different top-level and installed copies of `release-notes.md`; its installer correctly rolled the unit back to exact RC26.
+RC30 corrects RC29's handover-only publication packaging defect. RC29's local publisher stopped before GitHub mutation because its public folder contained the full internal installer instead of the tested self-contained bootstrap. RC29 was never published or installed and is not an upgrade source.
 
-RC28 requires every duplicated release metadata file to be byte-identical. The deterministic archive builder refuses a mismatch, and the installer repeats the gate before dependency preparation, service interruption, backup or target deployment.
+RC30 retains the RC29 Home-marker implementation unchanged:
 
-The intended RC27 feature scope is carried forward unchanged:
+- direct normalized SIYI quaternion projection without an Euler round-trip;
+- fixed Air Link uses aircraft attitude only;
+- SIYI earth frame uses raw gimbal attitude;
+- SIYI vehicle frame adds aircraft heading exactly once without reapplying aircraft pitch or roll;
+- visible and off-screen positions share one continuous projection ray;
+- live and 2 km no-GPS bench Home use the same display path;
+- arming, stale, unknown or disconnected arm state discards simulation immediately.
 
-- camera-frame-correct Home **H**, including SIYI earth/vehicle yaw-frame handling and continuous full-sphere edge motion;
-- a browser-only simulated Home exactly 2 km ahead and 80 m below, available only while freshly connected and explicitly disarmed;
-- local and Cloud UI 7 presentation of partial ECI/eNodeB/sector/TAC history without fabricated tower coordinates.
-
-The public repository must contain exactly these five files:
+This repository must contain exactly five files:
 
 - `README.md`
 - `install.sh`
 - `manifest.json`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.28.tar.gz`
-- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.28.sha256`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.30.tar.gz`
+- `FLIGHTCORE_RPI_INSTALLER_RELEASE_4.4.0-rc.30.sha256`
 
-RC28 supports the exact installed RC26 recovery route and the exact accepted RC24 route. Failed RC27 is not an upgrade source and must not be retried.
+The public `install.sh` is the self-contained bootstrap and must be byte-identical to `public-install.sh` inside the immutable archive. The internal payload installer is not a public bootstrap.
 
-Operator order:
-
-1. Run the RC28 publisher.
-2. Run the independent RC28 publication verifier.
-3. Run the exact RC26-to-RC28 or RC24-to-RC28 read-only preflight.
-4. Only after PASS, install RC28 from FlightCore Software Update.
-5. Run the post-upgrade checker, bench acceptance and controlled flight acceptance.
-
-Do not power off the Raspberry Pi during installation or post-reboot verification.
+RC30 supports exact installed RC28 and RC26 recovery, exact accepted RC24, retained represented historical routes and genuine fresh installation. Modified, unknown and RC29 sources fail closed.
